@@ -83,15 +83,6 @@ function LoginPage() {
           >
             {busy ? "Checking…" : "Let me in"}
           </button>
-
-          <div className="mt-5 grid grid-cols-2 gap-2 text-xs">
-            <div className="rounded-xl bg-mint px-3 py-2 font-bold text-mint-foreground">
-              Worker demo: RAVI01
-            </div>
-            <div className="rounded-xl bg-sky px-3 py-2 font-bold text-sky-foreground">
-              Admin demo: ADMIN2024
-            </div>
-          </div>
         </form>
       </div>
     </main>
