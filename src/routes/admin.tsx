@@ -359,3 +359,22 @@ function Pill({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
+function CellInput({
+  value,
+  onChange,
+  type = "text",
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  type?: string;
+}) {
+  return (
+    <input
+      type={type}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="w-full rounded-lg border-2 border-border bg-secondary px-2 py-1 font-semibold outline-none transition focus:border-primary"
+    />
+  );
+}
