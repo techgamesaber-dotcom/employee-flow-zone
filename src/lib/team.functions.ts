@@ -245,3 +245,28 @@ export const addWorker = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true as const };
   });
+
+export const deleteWorker = createServerFn({ method: "POST" })
+  .inputValidator((input: { code: string; workerId: string }) => ({
+    code: codeSchema.parse(input.code),
+    workerId: z.string().uuid().parse(input.workerId),
+  }))
+  .handler(async ({ data }) => {
+    const w = await resolveWorker(data.code);
+    if (!w.is_admin) throw new Error("Not allowed");
+
+    const db = await admin();
+    const { data: target, error: targetError } = await db
+      .from("workers")
+      .select("id, is_admin")
+      .eq("id", data.workerId)
+      .maybeSingle();
+
+    if (targetError) throw new Error(targetError.message);
+    if (!target) throw new Error("Worker not found");
+    if (target.is_admin) throw new Error("Admin accounts cannot be deleted");
+
+    const { error } = await db.from("workers").delete().eq("id", data.workerId);
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
+  });
