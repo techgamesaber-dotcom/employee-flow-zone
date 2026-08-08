@@ -162,5 +162,41 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-family: var(--font-sans);
+    background-image:
+      radial-gradient(circle at 12% 8%, oklch(0.87 0.16 88 / 0.35), transparent 42%),
+      radial-gradient(circle at 88% 4%, oklch(0.86 0.13 165 / 0.32), transparent 40%),
+      radial-gradient(circle at 70% 92%, oklch(0.72 0.17 350 / 0.18), transparent 45%);
+    background-attachment: fixed;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
   }
 }
+
+@utility card-fun {
+  border-radius: var(--radius-2xl);
+  background-color: var(--color-card);
+  border: 2px solid oklch(0.9 0.03 80);
+  box-shadow: 0 10px 0 -4px oklch(0.9 0.03 80 / 0.6), 0 18px 40px -24px oklch(0.4 0.08 60 / 0.5);
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@utility pop-in {
+  animation: pop-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
