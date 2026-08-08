@@ -3,7 +3,13 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { addOrder, getWorkerDashboard, markAttendance } from "@/lib/team.functions";
+import {
+  addOrder,
+  deleteOrder,
+  getWorkerDashboard,
+  markAttendance,
+  updateOrder,
+} from "@/lib/team.functions";
 import { clearSession, money, readSession, type Session } from "@/lib/session";
 
 export const Route = createFileRoute("/worker")({
@@ -77,6 +83,47 @@ function WorkerPage() {
     },
     onError: () => toast.error("Please fill name, order and valid amounts."),
   });
+
+  const edit = useServerFn(updateOrder);
+  const remove = useServerFn(deleteOrder);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({
+    customerName: "",
+    orderDetails: "",
+    price: "",
+    pricePaid: "",
+  });
+
+  const editMut = useMutation({
+    mutationFn: (id: string) =>
+      edit({
+        data: {
+          code,
+          id,
+          customerName: editForm.customerName,
+          orderDetails: editForm.orderDetails,
+          price: Number(editForm.price || 0),
+          pricePaid: Number(editForm.pricePaid || 0),
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Order updated ✏️");
+      setEditingId(null);
+      qc.invalidateQueries({ queryKey: ["worker", code] });
+    },
+    onError: () => toast.error("Could not update this order."),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: (id: string) => remove({ data: { code, id } }),
+    onSuccess: () => {
+      toast.success("Order deleted 🗑️");
+      qc.invalidateQueries({ queryKey: ["worker", code] });
+    },
+    onError: () => toast.error("Could not delete this order."),
+  });
+
+
 
   if (!session) return null;
 
@@ -210,29 +257,109 @@ function WorkerPage() {
                 key={o.id}
                 className="rounded-2xl border-2 border-border bg-background/60 p-4 transition hover:-translate-y-0.5"
               >
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <p className="text-lg font-extrabold">{o.customer_name}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {new Date(o.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-                <p className="text-sm text-muted-foreground">{o.order_details}</p>
-                <div className="mt-3 flex flex-wrap gap-2 text-sm font-bold">
-                  <span className="rounded-lg bg-secondary px-3 py-1">Price {money(o.price)}</span>
-                  <span className="rounded-lg bg-mint px-3 py-1 text-mint-foreground">
-                    Paid {money(o.price_paid)}
-                  </span>
-                  <span
-                    className={`rounded-lg px-3 py-1 ${
-                      Number(o.price_left) > 0
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-sky text-sky-foreground"
-                    }`}
+                {editingId === o.id ? (
+                  <form
+                    className="grid gap-3 md:grid-cols-2"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      editMut.mutate(o.id);
+                    }}
                   >
-                    Left {money(o.price_left)}
-                  </span>
-                </div>
+                    <Field
+                      label="Customer name"
+                      value={editForm.customerName}
+                      onChange={(v) => setEditForm({ ...editForm, customerName: v })}
+                    />
+                    <Field
+                      label="Order"
+                      value={editForm.orderDetails}
+                      onChange={(v) => setEditForm({ ...editForm, orderDetails: v })}
+                    />
+                    <Field
+                      label="Price"
+                      type="number"
+                      value={editForm.price}
+                      onChange={(v) => setEditForm({ ...editForm, price: v })}
+                    />
+                    <Field
+                      label="Price paid"
+                      type="number"
+                      value={editForm.pricePaid}
+                      onChange={(v) => setEditForm({ ...editForm, pricePaid: v })}
+                    />
+                    <div className="flex gap-2 md:col-span-2">
+                      <button
+                        type="submit"
+                        disabled={editMut.isPending}
+                        className="flex-1 rounded-xl bg-primary px-4 py-3 font-extrabold text-primary-foreground transition hover:brightness-105 disabled:opacity-60"
+                      >
+                        {editMut.isPending ? "Saving…" : "Save changes"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditingId(null)}
+                        className="rounded-xl border-2 border-border bg-card px-4 py-3 font-bold transition hover:bg-secondary"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <>
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      <p className="text-lg font-extrabold">{o.customer_name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(o.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{o.order_details}</p>
+                    <div className="mt-3 flex flex-wrap gap-2 text-sm font-bold">
+                      <span className="rounded-lg bg-secondary px-3 py-1">
+                        Price {money(o.price)}
+                      </span>
+                      <span className="rounded-lg bg-mint px-3 py-1 text-mint-foreground">
+                        Paid {money(o.price_paid)}
+                      </span>
+                      <span
+                        className={`rounded-lg px-3 py-1 ${
+                          Number(o.price_left) > 0
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-sky text-sky-foreground"
+                        }`}
+                      >
+                        Left {money(o.price_left)}
+                      </span>
+                    </div>
+                    <div className="mt-3 flex gap-2">
+                      <button
+                        onClick={() => {
+                          setEditingId(o.id);
+                          setEditForm({
+                            customerName: o.customer_name,
+                            orderDetails: o.order_details,
+                            price: String(o.price),
+                            pricePaid: String(o.price_paid),
+                          });
+                        }}
+                        className="rounded-xl border-2 border-border bg-card px-4 py-2 text-sm font-bold transition hover:bg-secondary"
+                      >
+                        ✏️ Update
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm(`Delete the order for ${o.customer_name}?`))
+                            deleteMut.mutate(o.id);
+                        }}
+                        disabled={deleteMut.isPending}
+                        className="rounded-xl bg-berry px-4 py-2 text-sm font-bold text-berry-foreground transition hover:brightness-105 disabled:opacity-60"
+                      >
+                        🗑️ Delete
+                      </button>
+                    </div>
+                  </>
+                )}
               </li>
+
             ))}
           </ul>
         )}
