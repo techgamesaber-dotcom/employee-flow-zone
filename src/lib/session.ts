@@ -20,6 +20,6 @@ export function clearSession() {
   localStorage.removeItem(KEY);
 }
 
-export function money(n: number | string) {
-  return "₹" + Number(n).toLocaleString("en-IN", { maximumFractionDigits: 0 });
+export function money(n: number | string | null | undefined) {
+  return "₹" + Number(n ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 });
 }
