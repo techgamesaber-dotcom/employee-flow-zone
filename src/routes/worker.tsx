@@ -3,7 +3,13 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { addOrder, getWorkerDashboard, markAttendance } from "@/lib/team.functions";
+import {
+  addOrder,
+  deleteOrder,
+  getWorkerDashboard,
+  markAttendance,
+  updateOrder,
+} from "@/lib/team.functions";
 import { clearSession, money, readSession, type Session } from "@/lib/session";
 
 export const Route = createFileRoute("/worker")({
