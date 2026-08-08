@@ -14,7 +14,103 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      attendance: {
+        Row: {
+          created_at: string
+          day: string
+          id: string
+          status: string
+          worker_id: string
+        }
+        Insert: {
+          created_at?: string
+          day?: string
+          id?: string
+          status: string
+          worker_id: string
+        }
+        Update: {
+          created_at?: string
+          day?: string
+          id?: string
+          status?: string
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          created_at: string
+          customer_name: string
+          id: string
+          order_details: string
+          price: number
+          price_left: number | null
+          price_paid: number
+          worker_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer_name: string
+          id?: string
+          order_details: string
+          price?: number
+          price_left?: number | null
+          price_paid?: number
+          worker_id: string
+        }
+        Update: {
+          created_at?: string
+          customer_name?: string
+          id?: string
+          order_details?: string
+          price?: number
+          price_left?: number | null
+          price_paid?: number
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workers: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          is_admin: boolean
+          name: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          is_admin?: boolean
+          name: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          is_admin?: boolean
+          name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
