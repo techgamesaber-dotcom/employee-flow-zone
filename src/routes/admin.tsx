@@ -58,7 +58,47 @@ function AdminPage() {
     onError: () => toast.error("Could not add worker — code may already be taken."),
   });
 
+  const edit = useServerFn(updateOrder);
+  const remove = useServerFn(deleteOrder);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({
+    customerName: "",
+    orderDetails: "",
+    price: "",
+    pricePaid: "",
+  });
+
+  const editMut = useMutation({
+    mutationFn: (id: string) =>
+      edit({
+        data: {
+          code,
+          id,
+          customerName: editForm.customerName,
+          orderDetails: editForm.orderDetails,
+          price: Number(editForm.price || 0),
+          pricePaid: Number(editForm.pricePaid || 0),
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Order updated ✏️");
+      setEditingId(null);
+      qc.invalidateQueries({ queryKey: ["admin", code] });
+    },
+    onError: () => toast.error("Could not update this order."),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: (id: string) => remove({ data: { code, id } }),
+    onSuccess: () => {
+      toast.success("Order deleted 🗑️");
+      qc.invalidateQueries({ queryKey: ["admin", code] });
+    },
+    onError: () => toast.error("Could not delete this order."),
+  });
+
   if (!session) return null;
+
   const d = dash.data;
 
   return (
