@@ -182,7 +182,7 @@ function AdminPage() {
       <section className="card-fun mb-6 p-6">
         <h2 className="text-xl font-extrabold">All orders</h2>
         <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[720px] text-left text-sm">
+          <table className="w-full min-w-[860px] text-left text-sm">
             <thead>
               <tr className="text-xs uppercase tracking-wide text-muted-foreground">
                 <th className="py-2">Worker</th>
@@ -191,25 +191,107 @@ function AdminPage() {
                 <th className="py-2 text-right">Price</th>
                 <th className="py-2 text-right">Paid</th>
                 <th className="py-2 text-right">Left</th>
+                <th className="py-2 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {(d?.orders ?? []).map((o) => (
-                <tr key={o.id} className="border-t-2 border-border font-semibold">
-                  <td className="py-3">{o.workerName}</td>
-                  <td className="py-3">{o.customer_name}</td>
-                  <td className="py-3 text-muted-foreground">{o.order_details}</td>
-                  <td className="py-3 text-right">{money(o.price)}</td>
-                  <td className="py-3 text-right">{money(o.price_paid)}</td>
-                  <td
-                    className={`py-3 text-right font-extrabold ${
-                      Number(o.price_left) > 0 ? "text-primary" : "text-muted-foreground"
-                    }`}
-                  >
-                    {money(o.price_left)}
-                  </td>
-                </tr>
-              ))}
+              {(d?.orders ?? []).map((o) =>
+                editingId === o.id ? (
+                  <tr key={o.id} className="border-t-2 border-border font-semibold">
+                    <td className="py-3">{o.workerName}</td>
+                    <td className="py-3">
+                      <CellInput
+                        value={editForm.customerName}
+                        onChange={(v) => setEditForm({ ...editForm, customerName: v })}
+                      />
+                    </td>
+                    <td className="py-3">
+                      <CellInput
+                        value={editForm.orderDetails}
+                        onChange={(v) => setEditForm({ ...editForm, orderDetails: v })}
+                      />
+                    </td>
+                    <td className="py-3">
+                      <CellInput
+                        type="number"
+                        value={editForm.price}
+                        onChange={(v) => setEditForm({ ...editForm, price: v })}
+                      />
+                    </td>
+                    <td className="py-3">
+                      <CellInput
+                        type="number"
+                        value={editForm.pricePaid}
+                        onChange={(v) => setEditForm({ ...editForm, pricePaid: v })}
+                      />
+                    </td>
+                    <td className="py-3 text-right font-extrabold text-primary">
+                      {money(Math.max(Number(editForm.price || 0) - Number(editForm.pricePaid || 0), 0))}
+                    </td>
+                    <td className="py-3">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => editMut.mutate(o.id)}
+                          disabled={editMut.isPending}
+                          className="rounded-lg bg-primary px-3 py-2 text-xs font-extrabold text-primary-foreground transition hover:brightness-105 disabled:opacity-60"
+                        >
+                          {editMut.isPending ? "Saving…" : "Save"}
+                        </button>
+                        <button
+                          onClick={() => setEditingId(null)}
+                          className="rounded-lg border-2 border-border bg-card px-3 py-2 text-xs font-bold transition hover:bg-secondary"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  <tr key={o.id} className="border-t-2 border-border font-semibold">
+                    <td className="py-3">{o.workerName}</td>
+                    <td className="py-3">{o.customer_name}</td>
+                    <td className="py-3 text-muted-foreground">{o.order_details}</td>
+                    <td className="py-3 text-right">{money(o.price)}</td>
+                    <td className="py-3 text-right">{money(o.price_paid)}</td>
+                    <td
+                      className={`py-3 text-right font-extrabold ${
+                        Number(o.price_left) > 0 ? "text-primary" : "text-muted-foreground"
+                      }`}
+                    >
+                      {money(o.price_left)}
+                    </td>
+                    <td className="py-3">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => {
+                            setEditingId(o.id);
+                            setEditForm({
+                              customerName: o.customer_name,
+                              orderDetails: o.order_details,
+                              price: String(o.price),
+                              pricePaid: String(o.price_paid),
+                            });
+                          }}
+                          className="rounded-lg border-2 border-border bg-card px-3 py-2 text-xs font-bold transition hover:bg-secondary"
+                        >
+                          ✏️ Update
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm(`Delete the order for ${o.customer_name}?`))
+                              deleteMut.mutate(o.id);
+                          }}
+                          disabled={deleteMut.isPending}
+                          className="rounded-lg bg-berry px-3 py-2 text-xs font-bold text-berry-foreground transition hover:brightness-105 disabled:opacity-60"
+                        >
+                          🗑️ Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ),
+              )}
+
             </tbody>
           </table>
           {!dash.isLoading && !(d?.orders ?? []).length && (
