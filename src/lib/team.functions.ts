@@ -116,6 +116,55 @@ export const addOrder = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+export const updateOrder = createServerFn({ method: "POST" })
+  .inputValidator(
+    (input: {
+      code: string;
+      id: string;
+      customerName: string;
+      orderDetails: string;
+      price: number;
+      pricePaid: number;
+    }) => ({
+      code: codeSchema.parse(input.code),
+      id: z.string().uuid().parse(input.id),
+      customerName: z.string().trim().min(1).max(120).parse(input.customerName),
+      orderDetails: z.string().trim().min(1).max(500).parse(input.orderDetails),
+      price: z.number().min(0).max(100000000).parse(input.price),
+      pricePaid: z.number().min(0).max(100000000).parse(input.pricePaid),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const w = await resolveWorker(data.code);
+    const db = await admin();
+    const query = db
+      .from("orders")
+      .update({
+        customer_name: data.customerName,
+        order_details: data.orderDetails,
+        price: data.price,
+        price_paid: Math.min(data.pricePaid, data.price),
+      })
+      .eq("id", data.id);
+    const { error } = w.is_admin ? await query : await query.eq("worker_id", w.id);
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
+  });
+
+export const deleteOrder = createServerFn({ method: "POST" })
+  .inputValidator((input: { code: string; id: string }) => ({
+    code: codeSchema.parse(input.code),
+    id: z.string().uuid().parse(input.id),
+  }))
+  .handler(async ({ data }) => {
+    const w = await resolveWorker(data.code);
+    const db = await admin();
+    const query = db.from("orders").delete().eq("id", data.id);
+    const { error } = w.is_admin ? await query : await query.eq("worker_id", w.id);
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
+  });
+
 export const getAdminDashboard = createServerFn({ method: "POST" })
   .inputValidator((input: { code: string }) => ({ code: codeSchema.parse(input.code) }))
   .handler(async ({ data }) => {
