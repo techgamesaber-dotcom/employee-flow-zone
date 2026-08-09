@@ -1,6 +1,21 @@
 const KEY = "worksy.session";
 
-export type Session = { id: string; name: string; isAdmin: boolean; code: string };
+export type CompanyAccess = {
+  id: string;
+  slug: string;
+  name: string;
+  emoji: string;
+  tagline: string;
+};
+
+export type Session = {
+  id: string;
+  name: string;
+  isAdmin: boolean;
+  code: string;
+  companies: CompanyAccess[];
+  activeCompanyId?: string;
+};
 
 export function saveSession(s: Session) {
   localStorage.setItem(KEY, JSON.stringify(s));
@@ -14,6 +29,12 @@ export function readSession(): Session | null {
   } catch {
     return null;
   }
+}
+
+export function setActiveCompany(companyId: string) {
+  const session = readSession();
+  if (!session || !session.companies.some((c) => c.id === companyId)) return;
+  saveSession({ ...session, activeCompanyId: companyId });
 }
 
 export function clearSession() {
