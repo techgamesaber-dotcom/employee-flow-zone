@@ -7,7 +7,7 @@ import { readSession, saveSession } from "@/lib/session";
 
 export const Route = createFileRoute("/")({
   head: () => ({ meta: [
-    { title: "Worksy — Creative Company Universe" },
+    { title: "World of Origami Employ Portal" },
     { name: "description", content: "A fun, secure workspace for your creative companies." },
   ]}),
   component: LoginPage,
@@ -42,12 +42,12 @@ function LoginPage() {
       <div className="relative w-full max-w-2xl pop-in">
         <div className="mb-7 text-center">
           <div className="mx-auto mb-4 flex h-20 w-20 rotate-[-6deg] items-center justify-center rounded-[2rem] bg-primary text-4xl shadow-xl">✨</div>
-          <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-primary">Worksy · Creative Company Universe</p>
+          <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-primary">World of Origami Employ Portal</p>
           <h1 className="mt-2 text-5xl font-extrabold tracking-tight">Make work feel like yours.</h1>
           <p className="mx-auto mt-3 max-w-xl text-muted-foreground">One secure home for your teams, ideas, projects and four very different creative worlds.</p>
         </div>
         <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-4">
-          {[["🟨","Section A Origami"],["💻","World of Tech"],["🏠","World of Designing"],["🎨","World of Colours"]].map(([emoji,name]) => <div key={name} className="rounded-2xl border-2 border-border bg-card/80 p-4 text-center shadow-sm"><div className="text-2xl">{emoji}</div><p className="mt-1 text-xs font-extrabold">{name}</p></div>)}
+          {[['🟨','Section A Origami'],['💻','World of Tech'],['🏠','World of Designing'],['🎨','World of Colours']].map(([emoji,name]) => <div key={name} className="rounded-2xl border-2 border-border bg-card/80 p-4 text-center shadow-sm"><div className="text-2xl">{emoji}</div><p className="mt-1 text-xs font-extrabold">{name}</p></div>)}
         </div>
         <form onSubmit={submit} className="card-fun p-6 md:p-8">
           <label htmlFor="code" className="text-sm font-bold">Your worker code</label>
