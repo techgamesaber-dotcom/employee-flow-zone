@@ -4,117 +4,33 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { addWorker, deleteOrder, deleteWorker, getAdminDashboard, updateOrder } from "@/lib/team.functions";
-import { clearSession, money, readSession, type Session } from "@/lib/session";
+import { clearSession, money, readSession, saveSession, type Session } from "@/lib/session";
 
-export const Route = createFileRoute("/admin")({
-  head: () => ({
-    meta: [
-      { title: "World of Origami Portal — Admin" },
-      { name: "description", content: "World of Origami employee portal for attendance, order collections and team management." },
-      { property: "og:title", content: "World of Origami Portal — Admin" },
-      { property: "og:description", content: "Manage your World of Origami team, attendance and order collections." },
-    ],
-  }),
-  component: AdminPage,
-});
+export const Route = createFileRoute("/admin")({ head: () => ({ meta: [{ title: "Worksy — Admin Command Center" }] }), component: AdminPage });
 
 function AdminPage() {
-  const navigate = useNavigate();
-  const qc = useQueryClient();
-  const [session, setSession] = useState<Session | null>(null);
-  const fetchDash = useServerFn(getAdminDashboard);
-  const create = useServerFn(addWorker);
-  const removeWorker = useServerFn(deleteWorker);
-
-  useEffect(() => {
-    const s = readSession();
-    if (!s) navigate({ to: "/" });
-    else if (!s.isAdmin) navigate({ to: "/worker" });
-    else setSession(s);
-  }, [navigate]);
-
+  const navigate = useNavigate(); const qc = useQueryClient(); const [session, setSession] = useState<Session | null>(null); const [companyId, setCompanyId] = useState("");
+  const fetchDash = useServerFn(getAdminDashboard); const create = useServerFn(addWorker); const removeWorker = useServerFn(deleteWorker); const edit = useServerFn(updateOrder); const remove = useServerFn(deleteOrder);
+  useEffect(() => { const s = readSession(); if (!s) navigate({ to: "/" }); else if (!s.isAdmin) navigate({ to: "/worker" }); else { setSession(s); setCompanyId(s.activeCompanyId ?? s.companies[0]?.id ?? ""); } }, [navigate]);
   const code = session?.code ?? "";
-  const dash = useQuery({ queryKey: ["admin", code], enabled: !!code, queryFn: () => fetchDash({ data: { code } }) });
+  const dash = useQuery({ queryKey: ["admin", code, companyId], enabled: !!code && !!companyId, queryFn: () => fetchDash({ data: { code, companyId } }) });
+  const [newWorker, setNewWorker] = useState({ name: "", workerCode: "" }); const [editingId, setEditingId] = useState<string | null>(null); const [editForm, setEditForm] = useState({ customerName: "", orderDetails: "", price: "", pricePaid: "" });
+  const workerMut = useMutation({ mutationFn: () => create({ data: { code, name: newWorker.name, workerCode: newWorker.workerCode } }), onSuccess: () => { toast.success("Worker added 🎉"); setNewWorker({ name: "", workerCode: "" }); qc.invalidateQueries({ queryKey: ["admin", code] }); }, onError: () => toast.error("Could not add worker — code may already be taken.") });
+  const workerDeleteMut = useMutation({ mutationFn: (workerId: string) => removeWorker({ data: { code, workerId } }), onSuccess: () => { toast.success("Worker removed."); qc.invalidateQueries({ queryKey: ["admin", code] }); }, onError: () => toast.error("Could not remove this worker.") });
+  const editMut = useMutation({ mutationFn: (id: string) => edit({ data: { code, companyId, id, customerName: editForm.customerName, orderDetails: editForm.orderDetails, price: Number(editForm.price || 0), pricePaid: Number(editForm.pricePaid || 0) } }), onSuccess: () => { toast.success("Order updated ✏️"); setEditingId(null); qc.invalidateQueries({ queryKey: ["admin", code, companyId] }); }, onError: () => toast.error("Could not update this order.") });
+  const deleteMut = useMutation({ mutationFn: (id: string) => remove({ data: { code, companyId, id } }), onSuccess: () => { toast.success("Order deleted 🗑️"); qc.invalidateQueries({ queryKey: ["admin", code, companyId] }); }, onError: () => toast.error("Could not delete this order.") });
+  if (!session || !companyId) return null; const d = dash.data; const activeCompany = session.companies.find((c) => c.id === companyId);
+  function changeCompany(id: string) { setCompanyId(id); const s = readSession(); if (s) saveSession({ ...s, activeCompanyId: id }); toast.success("Switched company workspace ✨"); }
 
-  const [newWorker, setNewWorker] = useState({ name: "", workerCode: "" });
-  const workerMut = useMutation({
-    mutationFn: () => create({ data: { code, name: newWorker.name, workerCode: newWorker.workerCode } }),
-    onSuccess: () => { toast.success("Worker added 🎉"); setNewWorker({ name: "", workerCode: "" }); qc.invalidateQueries({ queryKey: ["admin", code] }); },
-    onError: () => toast.error("Could not add worker — code may already be taken."),
-  });
-
-  const workerDeleteMut = useMutation({
-    mutationFn: (workerId: string) => removeWorker({ data: { code, workerId } }),
-    onSuccess: () => { toast.success("Worker removed successfully."); qc.invalidateQueries({ queryKey: ["admin", code] }); },
-    onError: () => toast.error("Could not remove this worker."),
-  });
-
-  const edit = useServerFn(updateOrder);
-  const remove = useServerFn(deleteOrder);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ customerName: "", orderDetails: "", price: "", pricePaid: "" });
-  const editMut = useMutation({
-    mutationFn: (id: string) => edit({ data: { code, id, customerName: editForm.customerName, orderDetails: editForm.orderDetails, price: Number(editForm.price || 0), pricePaid: Number(editForm.pricePaid || 0) } }),
-    onSuccess: () => { toast.success("Order updated ✏️"); setEditingId(null); qc.invalidateQueries({ queryKey: ["admin", code] }); },
-    onError: () => toast.error("Could not update this order."),
-  });
-  const deleteMut = useMutation({
-    mutationFn: (id: string) => remove({ data: { code, id } }),
-    onSuccess: () => { toast.success("Order deleted 🗑️"); qc.invalidateQueries({ queryKey: ["admin", code] }); },
-    onError: () => toast.error("Could not delete this order."),
-  });
-
-  if (!session) return null;
-  const d = dash.data;
-
-  return (
-    <main className="mx-auto max-w-6xl px-4 py-8">
-      <header className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-2xl shadow-sm">🧡</div>
-            <div><p className="text-xs font-extrabold uppercase tracking-[0.18em] text-primary">World of Origami</p><h1 className="text-3xl font-extrabold">Employee Portal</h1></div>
-          </div>
-          <p className="mt-2 text-sm font-bold text-muted-foreground">Admin control center · Everything at a glance</p>
-        </div>
-        <button onClick={() => { clearSession(); navigate({ to: "/" }); }} className="rounded-xl border-2 border-border bg-card px-4 py-2 text-sm font-bold transition hover:bg-secondary">Log out</button>
-      </header>
-
-      <section className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
-        <Stat label="Workers" value={String(d?.totals.workers ?? 0)} tone="bg-secondary" />
-        <Stat label="Present today" value={String(d?.totals.presentToday ?? 0)} tone="bg-mint text-mint-foreground" />
-        <Stat label="Absent today" value={String(d?.totals.absentToday ?? 0)} tone="bg-berry text-berry-foreground" />
-        <Stat label="Order value" value={money(d?.totals.total)} tone="bg-sunny text-sunny-foreground" />
-        <Stat label="Collected" value={money(d?.totals.collected)} tone="bg-sky text-sky-foreground" />
-        <Stat label="Pending" value={money(d?.totals.pending)} tone="bg-primary text-primary-foreground" />
-      </section>
-
-      <section className="card-fun mb-6 p-6 pop-in">
-        <div className="flex flex-wrap items-end justify-between gap-2"><div><p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Team management</p><h2 className="text-xl font-extrabold">Worker scoreboard</h2></div><p className="text-xs font-semibold text-muted-foreground">Manage employee access</p></div>
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
-          {(d?.summary ?? []).map((w) => (
-            <div key={w.id} className="rounded-2xl border-2 border-border bg-background/60 p-4 transition hover:-translate-y-0.5">
-              <div className="flex flex-wrap items-center justify-between gap-2"><div><p className="text-lg font-extrabold">{w.name}</p><p className="text-xs font-bold text-muted-foreground">Code {w.code}</p></div><span className={`rounded-lg px-3 py-1 text-xs font-extrabold ${w.todayStatus === "present" ? "bg-mint text-mint-foreground" : w.todayStatus === "absent" ? "bg-berry text-berry-foreground" : "bg-secondary text-secondary-foreground"}`}>{w.todayStatus ? `Today: ${w.todayStatus}` : "Not marked today"}</span></div>
-              <div className="mt-3 grid grid-cols-2 gap-2 text-sm font-bold sm:grid-cols-4"><Pill label="Present" value={String(w.present)} /><Pill label="Absent" value={String(w.absent)} /><Pill label="Orders" value={String(w.orderCount)} /><Pill label="Pending" value={money(w.pending)} /></div>
-              <button onClick={() => { if (confirm(`Remove ${w.name} from the World of Origami portal?`)) workerDeleteMut.mutate(w.id); }} disabled={workerDeleteMut.isPending} className="mt-4 w-full rounded-xl border-2 border-berry/40 bg-berry/10 px-3 py-2.5 text-sm font-extrabold text-berry-foreground transition hover:bg-berry/20 disabled:opacity-60">{workerDeleteMut.isPending ? "Removing…" : "🗑️ Remove worker"}</button>
-            </div>
-          ))}
-          {!dash.isLoading && !(d?.summary ?? []).length && <p className="text-muted-foreground">No workers yet. Add one below.</p>}
-        </div>
-      </section>
-
-      <section className="card-fun mb-6 p-6"><h2 className="text-xl font-extrabold">All orders</h2><div className="mt-4 overflow-x-auto"><table className="w-full min-w-[860px] text-left text-sm"><thead><tr className="text-xs uppercase tracking-wide text-muted-foreground"><th className="py-2">Worker</th><th className="py-2">Customer</th><th className="py-2">Order</th><th className="py-2 text-right">Price</th><th className="py-2 text-right">Paid</th><th className="py-2 text-right">Left</th><th className="py-2 text-right">Actions</th></tr></thead><tbody>
-        {(d?.orders ?? []).map((o) => editingId === o.id ? (
-          <tr key={o.id} className="border-t-2 border-border font-semibold"><td className="py-3">{o.workerName}</td><td className="py-3"><CellInput value={editForm.customerName} onChange={(v) => setEditForm({ ...editForm, customerName: v })} /></td><td className="py-3"><CellInput value={editForm.orderDetails} onChange={(v) => setEditForm({ ...editForm, orderDetails: v })} /></td><td className="py-3"><CellInput type="number" value={editForm.price} onChange={(v) => setEditForm({ ...editForm, price: v })} /></td><td className="py-3"><CellInput type="number" value={editForm.pricePaid} onChange={(v) => setEditForm({ ...editForm, pricePaid: v })} /></td><td className="py-3 text-right font-extrabold text-primary">{money(Math.max(Number(editForm.price || 0) - Number(editForm.pricePaid || 0), 0))}</td><td className="py-3"><div className="flex justify-end gap-2"><button onClick={() => editMut.mutate(o.id)} disabled={editMut.isPending} className="rounded-lg bg-primary px-3 py-2 text-xs font-extrabold text-primary-foreground">{editMut.isPending ? "Saving…" : "Save"}</button><button onClick={() => setEditingId(null)} className="rounded-lg border-2 border-border bg-card px-3 py-2 text-xs font-bold">Cancel</button></div></td></tr>
-        ) : (
-          <tr key={o.id} className="border-t-2 border-border font-semibold"><td className="py-3">{o.workerName}</td><td className="py-3">{o.customer_name}</td><td className="py-3 text-muted-foreground">{o.order_details}</td><td className="py-3 text-right">{money(o.price)}</td><td className="py-3 text-right">{money(o.price_paid)}</td><td className={`py-3 text-right font-extrabold ${Number(o.price_left) > 0 ? "text-primary" : "text-muted-foreground"}`}>{money(o.price_left)}</td><td className="py-3"><div className="flex justify-end gap-2"><button onClick={() => { setEditingId(o.id); setEditForm({ customerName: o.customer_name, orderDetails: o.order_details, price: String(o.price), pricePaid: String(o.price_paid) }); }} className="rounded-lg border-2 border-border bg-card px-3 py-2 text-xs font-bold">✏️ Update</button><button onClick={() => { if (confirm(`Delete the order for ${o.customer_name}?`)) deleteMut.mutate(o.id); }} disabled={deleteMut.isPending} className="rounded-lg bg-berry px-3 py-2 text-xs font-bold text-berry-foreground">🗑️ Delete</button></div></td></tr>
-        ))}
-      </tbody></table>{!dash.isLoading && !(d?.orders ?? []).length && <p className="mt-3 text-muted-foreground">No orders recorded yet.</p>}</div></section>
-
-      <section className="card-fun p-6"><p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Team management</p><h2 className="text-xl font-extrabold">Add a worker</h2><form className="mt-4 grid gap-3 md:grid-cols-3" onSubmit={(e) => { e.preventDefault(); workerMut.mutate(); }}><label className="block"><span className="text-sm font-bold">Name</span><input value={newWorker.name} onChange={(e) => setNewWorker({ ...newWorker, name: e.target.value })} placeholder="Anita Rao" className="mt-1 w-full rounded-xl border-2 border-border bg-secondary px-4 py-3 font-semibold outline-none transition focus:border-primary" /></label><label className="block"><span className="text-sm font-bold">Login code</span><input value={newWorker.workerCode} onChange={(e) => setNewWorker({ ...newWorker, workerCode: e.target.value.toUpperCase() })} placeholder="ANITA04" className="mt-1 w-full rounded-xl border-2 border-border bg-secondary px-4 py-3 font-semibold tracking-widest outline-none transition focus:border-primary" /></label><button type="submit" disabled={workerMut.isPending} className="mt-6 rounded-xl bg-primary px-4 py-3 font-extrabold text-primary-foreground transition hover:brightness-105 disabled:opacity-60">{workerMut.isPending ? "Adding…" : "Add worker"}</button></form></section>
-    </main>
-  );
+  return <main className="mx-auto max-w-6xl px-4 py-7 md:py-8">
+    <header className="mb-6 flex flex-wrap items-center justify-between gap-4"><div><p className="text-xs font-extrabold uppercase tracking-[0.18em] text-primary">Worksy · Admin Command Center</p><h1 className="mt-1 text-3xl font-extrabold">Run the worlds. 🚀</h1><p className="text-sm font-semibold text-muted-foreground">{activeCompany?.emoji} {activeCompany?.name} · {activeCompany?.tagline}</p></div><button onClick={() => { clearSession(); navigate({ to: "/" }); }} className="rounded-xl border-2 border-border bg-card px-4 py-2 text-sm font-bold hover:bg-secondary">Log out</button></header>
+    <section className="mb-6 rounded-3xl border-2 border-border bg-card p-4 shadow-sm"><p className="mb-3 text-xs font-extrabold uppercase tracking-wider text-muted-foreground">Company control</p><div className="grid grid-cols-2 gap-2 md:grid-cols-4">{session.companies.map((c) => <button key={c.id} onClick={() => changeCompany(c.id)} className={`rounded-2xl p-4 text-left font-extrabold transition hover:-translate-y-0.5 ${c.id === companyId ? "bg-primary text-primary-foreground shadow-lg" : "bg-secondary"}`}><span className="text-2xl">{c.emoji}</span><span className="mt-2 block text-sm">{c.name}</span></button>)}</div></section>
+    <section className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6"><Stat label="Workers" value={String(d?.totals.workers ?? 0)} tone="bg-secondary" /><Stat label="Present" value={String(d?.totals.presentToday ?? 0)} tone="bg-mint text-mint-foreground" /><Stat label="Absent" value={String(d?.totals.absentToday ?? 0)} tone="bg-berry text-berry-foreground" /><Stat label="Order value" value={money(d?.totals.total)} tone="bg-sunny text-sunny-foreground" /><Stat label="Collected" value={money(d?.totals.collected)} tone="bg-sky text-sky-foreground" /><Stat label="Pending" value={money(d?.totals.pending)} tone="bg-primary text-primary-foreground" /></section>
+    <section className="card-fun mb-6 p-6"><div className="flex flex-wrap items-end justify-between gap-2"><div><p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Team management</p><h2 className="text-xl font-extrabold">Worker scoreboard</h2></div><p className="text-xs font-semibold text-muted-foreground">Company-isolated view</p></div><div className="mt-4 grid gap-3 md:grid-cols-2">{(d?.summary ?? []).map((w) => <div key={w.id} className="rounded-2xl border-2 border-border bg-background/60 p-4 transition hover:-translate-y-0.5"><div className="flex flex-wrap items-center justify-between gap-2"><div><p className="text-lg font-extrabold">{w.name}</p><p className="text-xs font-bold text-muted-foreground">Code {w.code}</p></div><span className={`rounded-lg px-3 py-1 text-xs font-extrabold ${w.todayStatus === "present" ? "bg-mint text-mint-foreground" : w.todayStatus === "absent" ? "bg-berry text-berry-foreground" : "bg-secondary"}`}>{w.todayStatus ? `Today: ${w.todayStatus}` : "Not marked"}</span></div><div className="mt-3 grid grid-cols-2 gap-2 text-sm font-bold sm:grid-cols-4"><Pill label="Present" value={String(w.present)} /><Pill label="Absent" value={String(w.absent)} /><Pill label="Orders" value={String(w.orderCount)} /><Pill label="Pending" value={money(w.pending)} /></div><button onClick={() => { if (confirm(`Remove ${w.name} from the portal?`)) workerDeleteMut.mutate(w.id); }} disabled={workerDeleteMut.isPending} className="mt-4 w-full rounded-xl border-2 border-berry/40 bg-berry/10 px-3 py-2.5 text-sm font-extrabold text-berry-foreground">🗑️ Remove worker</button></div>)}{!dash.isLoading && !(d?.summary ?? []).length && <p className="text-muted-foreground">No workers yet.</p>}</div></section>
+    <section className="card-fun mb-6 p-6"><h2 className="text-xl font-extrabold">All orders · {activeCompany?.name}</h2><div className="mt-4 overflow-x-auto"><table className="w-full min-w-[860px] text-left text-sm"><thead><tr className="text-xs uppercase tracking-wide text-muted-foreground"><th className="py-2">Worker</th><th className="py-2">Customer</th><th className="py-2">Order</th><th className="py-2 text-right">Price</th><th className="py-2 text-right">Paid</th><th className="py-2 text-right">Left</th><th className="py-2 text-right">Actions</th></tr></thead><tbody>{(d?.orders ?? []).map((o) => editingId === o.id ? <tr key={o.id} className="border-t-2 border-border"><td className="py-3">{o.workerName}</td><td className="py-3"><CellInput value={editForm.customerName} onChange={(v) => setEditForm({ ...editForm, customerName: v })} /></td><td className="py-3"><CellInput value={editForm.orderDetails} onChange={(v) => setEditForm({ ...editForm, orderDetails: v })} /></td><td className="py-3"><CellInput type="number" value={editForm.price} onChange={(v) => setEditForm({ ...editForm, price: v })} /></td><td className="py-3"><CellInput type="number" value={editForm.pricePaid} onChange={(v) => setEditForm({ ...editForm, pricePaid: v })} /></td><td className="py-3 text-right font-extrabold">{money(Math.max(Number(editForm.price || 0) - Number(editForm.pricePaid || 0), 0))}</td><td className="py-3"><div className="flex justify-end gap-2"><button onClick={() => editMut.mutate(o.id)} className="rounded-lg bg-primary px-3 py-2 text-xs font-extrabold text-primary-foreground">Save</button><button onClick={() => setEditingId(null)} className="rounded-lg border-2 border-border px-3 py-2 text-xs font-bold">Cancel</button></div></td></tr> : <tr key={o.id} className="border-t-2 border-border font-semibold"><td className="py-3">{o.workerName}</td><td className="py-3">{o.customer_name}</td><td className="py-3 text-muted-foreground">{o.order_details}</td><td className="py-3 text-right">{money(o.price)}</td><td className="py-3 text-right">{money(o.price_paid)}</td><td className="py-3 text-right font-extrabold text-primary">{money(o.price_left)}</td><td className="py-3"><div className="flex justify-end gap-2"><button onClick={() => { setEditingId(o.id); setEditForm({ customerName: o.customer_name, orderDetails: o.order_details, price: String(o.price), pricePaid: String(o.price_paid) }); }} className="rounded-lg border-2 border-border px-3 py-2 text-xs font-bold">✏️ Update</button><button onClick={() => { if (confirm(`Delete the order for ${o.customer_name}?`)) deleteMut.mutate(o.id); }} className="rounded-lg bg-berry px-3 py-2 text-xs font-bold text-berry-foreground">🗑️ Delete</button></div></td></tr>)}</tbody></table>{!dash.isLoading && !(d?.orders ?? []).length && <p className="mt-3 text-muted-foreground">No orders recorded yet.</p>}</div></section>
+    <section className="card-fun p-6"><p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Team management</p><h2 className="text-xl font-extrabold">Add a worker</h2><form className="mt-4 grid gap-3 md:grid-cols-3" onSubmit={(e) => { e.preventDefault(); workerMut.mutate(); }}><label><span className="text-sm font-bold">Name</span><input value={newWorker.name} onChange={(e) => setNewWorker({ ...newWorker, name: e.target.value })} placeholder="Anita Rao" className="mt-1 w-full rounded-xl border-2 border-border bg-secondary px-4 py-3 font-semibold" /></label><label><span className="text-sm font-bold">Login code</span><input value={newWorker.workerCode} onChange={(e) => setNewWorker({ ...newWorker, workerCode: e.target.value.toUpperCase() })} placeholder="ANITA04" className="mt-1 w-full rounded-xl border-2 border-border bg-secondary px-4 py-3 font-semibold tracking-widest" /></label><button type="submit" disabled={workerMut.isPending} className="mt-6 rounded-xl bg-primary px-4 py-3 font-extrabold text-primary-foreground">{workerMut.isPending ? "Adding…" : "Add worker"}</button></form><p className="mt-3 text-xs font-semibold text-muted-foreground">New workers start in Section A Origami. Company assignment controls can be added next.</p></section>
+  </main>;
 }
 function Stat({ label, value, tone }: { label: string; value: string; tone: string }) { return <div className={`rounded-2xl px-4 py-5 ${tone}`}><p className="text-xs font-bold uppercase tracking-wide opacity-80">{label}</p><p className="mt-1 text-2xl font-extrabold">{value}</p></div>; }
-function Pill({ label, value }: { label: string; value: string }) { return <div className="rounded-xl bg-secondary px-3 py-2 text-secondary-foreground"><p className="text-[10px] uppercase opacity-70">{label}</p><p className="text-base font-extrabold">{value}</p></div>; }
-function CellInput({ value, onChange, type = "text" }: { value: string; onChange: (v: string) => void; type?: string }) { return <input type={type} value={value} onChange={(e) => onChange(e.target.value)} className="w-full rounded-lg border-2 border-border bg-secondary px-2 py-1 font-semibold outline-none transition focus:border-primary" />; }
+function Pill({ label, value }: { label: string; value: string }) { return <div className="rounded-xl bg-secondary px-3 py-2"><p className="text-[10px] uppercase opacity-70">{label}</p><p className="text-base font-extrabold">{value}</p></div>; }
+function CellInput({ value, onChange, type = "text" }: { value: string; onChange: (v: string) => void; type?: string }) { return <input type={type} value={value} onChange={(e) => onChange(e.target.value)} className="w-full rounded-lg border-2 border-border bg-secondary px-2 py-1 font-semibold" />; }
