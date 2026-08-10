@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       attendance: {
         Row: {
+          company_id: string
           created_at: string
           day: string
           id: string
@@ -23,6 +24,7 @@ export type Database = {
           worker_id: string
         }
         Insert: {
+          company_id: string
           created_at?: string
           day?: string
           id?: string
@@ -30,6 +32,7 @@ export type Database = {
           worker_id: string
         }
         Update: {
+          company_id?: string
           created_at?: string
           day?: string
           id?: string
@@ -37,6 +40,13 @@ export type Database = {
           worker_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "attendance_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "attendance_worker_id_fkey"
             columns: ["worker_id"]
@@ -46,8 +56,36 @@ export type Database = {
           },
         ]
       }
+      companies: {
+        Row: {
+          created_at: string
+          emoji: string
+          id: string
+          name: string
+          slug: string
+          tagline: string
+        }
+        Insert: {
+          created_at?: string
+          emoji?: string
+          id?: string
+          name: string
+          slug: string
+          tagline?: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          id?: string
+          name?: string
+          slug?: string
+          tagline?: string
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
+          company_id: string
           created_at: string
           customer_name: string
           id: string
@@ -58,6 +96,7 @@ export type Database = {
           worker_id: string
         }
         Insert: {
+          company_id: string
           created_at?: string
           customer_name: string
           id?: string
@@ -68,6 +107,7 @@ export type Database = {
           worker_id: string
         }
         Update: {
+          company_id?: string
           created_at?: string
           customer_name?: string
           id?: string
@@ -79,7 +119,50 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "orders_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "orders_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      worker_companies: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          worker_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          worker_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "worker_companies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "worker_companies_worker_id_fkey"
             columns: ["worker_id"]
             isOneToOne: false
             referencedRelation: "workers"
