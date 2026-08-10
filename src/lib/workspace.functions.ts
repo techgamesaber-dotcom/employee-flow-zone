@@ -56,6 +56,20 @@ export const addWorkspaceItem = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+export const updateWorkspaceItem = createServerFn({ method: "POST" })
+  .inputValidator((input: { code: string; companyId: string; id: string; title: string; description?: string }) => ({
+    code: codeSchema.parse(input.code), companyId: companySchema.parse(input.companyId), id: z.string().uuid().parse(input.id),
+    title: z.string().trim().min(1).max(100).parse(input.title), description: z.string().trim().max(500).parse(input.description ?? "")
+  }))
+  .handler(async ({ data }) => {
+    const worker = await authorize(data.code, data.companyId);
+    if (!worker.is_admin) throw new Error("Only admins can edit workspace items");
+    const db = await adminDb();
+    const { error } = await db.from("workspace_items").update({ title: data.title, description: data.description }).eq("id", data.id).eq("company_id", data.companyId);
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
+  });
+
 export const deleteWorkspaceItem = createServerFn({ method: "POST" })
   .inputValidator((input: { code: string; companyId: string; id: string }) => ({ code: codeSchema.parse(input.code), companyId: companySchema.parse(input.companyId), id: z.string().uuid().parse(input.id) }))
   .handler(async ({ data }) => {
