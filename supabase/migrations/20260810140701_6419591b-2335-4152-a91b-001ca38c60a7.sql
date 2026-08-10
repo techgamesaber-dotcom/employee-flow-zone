@@ -1,0 +1,1 @@
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS cost numeric NOT NULL DEFAULT 0;

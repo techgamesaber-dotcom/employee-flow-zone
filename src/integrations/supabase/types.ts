@@ -86,6 +86,7 @@ export type Database = {
       orders: {
         Row: {
           company_id: string
+          cost: number
           created_at: string
           customer_name: string
           id: string
@@ -97,6 +98,7 @@ export type Database = {
         }
         Insert: {
           company_id: string
+          cost?: number
           created_at?: string
           customer_name: string
           id?: string
@@ -108,6 +110,7 @@ export type Database = {
         }
         Update: {
           company_id?: string
+          cost?: number
           created_at?: string
           customer_name?: string
           id?: string
