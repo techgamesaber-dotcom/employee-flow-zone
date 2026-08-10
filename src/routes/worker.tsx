@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { addOrder, deleteOrder, getWorkerDashboard, markAttendance, updateOrder } from "@/lib/team.functions";
 import { clearSession, money, readSession, saveSession, type Session, type CompanyAccess } from "@/lib/session";
+import { UpdateButton } from "@/components/UpdateButton";
 
 export const Route = createFileRoute("/worker")({
   head: () => ({ meta: [{ title: "Worksy — My Creative Workspace" }, { name: "description", content: "A fun, secure workspace for your company." }] }),
@@ -72,7 +73,7 @@ function WorkerPage() {
     <main className="mx-auto max-w-6xl px-4 py-6 md:py-8">
       <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div><p className="text-xs font-extrabold uppercase tracking-[0.18em] text-primary">Worksy · {company.emoji} {company.name}</p><h1 className="mt-1 text-3xl font-extrabold">Hey {session.name}! 👋</h1><p className="text-sm font-semibold text-muted-foreground">{company.tagline}</p></div>
-        <button onClick={() => { clearSession(); navigate({ to: "/" }); }} className="rounded-xl border-2 border-border bg-card px-4 py-2 text-sm font-bold hover:bg-secondary">Log out</button>
+        <div className="flex gap-2"><UpdateButton /><button onClick={() => { clearSession(); navigate({ to: "/" }); }} className="rounded-xl border-2 border-border bg-card px-4 py-2 text-sm font-bold hover:bg-secondary">Log out</button></div>
       </header>
 
       {session.companies.length > 1 && <section className="mb-6 rounded-3xl border-2 border-border bg-card p-4 shadow-sm"><p className="mb-3 text-xs font-extrabold uppercase tracking-wider text-muted-foreground">Your unlocked worlds</p><div className="grid grid-cols-2 gap-2 md:grid-cols-4">{session.companies.map((c) => <button key={c.id} onClick={() => switchCompany(c)} className={`rounded-2xl p-4 text-left font-extrabold transition hover:-translate-y-0.5 ${c.id === company.id ? "bg-primary text-primary-foreground shadow-lg" : "bg-secondary"}`}><span className="text-2xl">{c.emoji}</span><span className="mt-2 block text-sm">{c.name}</span></button>)}</div></section>}
