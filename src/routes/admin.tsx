@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { addWorker, deleteOrder, deleteWorker, getAdminDashboard, updateOrder } from "@/lib/team.functions";
 import { clearSession, money, readSession, saveSession, type Session } from "@/lib/session";
+import { UpdateButton } from "@/components/UpdateButton";
 
 export const Route = createFileRoute("/admin")({ head: () => ({ meta: [{ title: "Worksy — Admin Command Center" }] }), component: AdminPage });
 
