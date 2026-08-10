@@ -25,7 +25,7 @@ function LoginPage() {
     try {
       const session = await signIn({ data: { code } });
       const activeCompanyId = session.companies[0]?.id;
-      saveSession({ ...session, activeCompanyId });
+      saveSession(activeCompanyId ? { ...session, activeCompanyId } : { ...session });
       toast.success(`Welcome back, ${session.name}! 🎉`);
       navigate({ to: session.isAdmin ? "/admin" : "/worker" });
     } catch { toast.error("That code didn't match anyone. Try again."); }
