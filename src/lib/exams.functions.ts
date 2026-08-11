@@ -51,7 +51,7 @@ export const listExams = createServerFn({ method: "POST" })
   });
 
 export const saveExam = createServerFn({ method: "POST" })
-  .inputValidator((input: { code: string; companyId: string; id?: string; title: string; description?: string; questions: { type: string; prompt: string; marks: number; config?: Record<string, unknown>; answerKey?: Record<string, unknown> }[] }) => ({
+  .inputValidator((input: { code: string; companyId: string; id?: string | undefined; title: string; description?: string; questions: { type: string; prompt: string; marks: number; config?: Record<string, unknown>; answerKey?: Record<string, unknown> }[] }) => ({
     code: z.string().trim().min(2).max(40).parse(input.code),
     companyId: z.string().uuid().parse(input.companyId),
     id: input.id ? z.string().uuid().parse(input.id) : undefined,

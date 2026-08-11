@@ -117,10 +117,10 @@ function ExamsPage() {
   }
 
   async function saveDraft() {
-    if (!title.trim()) return toast.error("Give the exam a title.");
-    if (drafts.some((d) => !d.prompt.trim())) return toast.error("Every question needs a prompt.");
+    if (!title.trim()) { toast.error("Give the exam a title."); return; }
+    if (drafts.some((d) => !d.prompt.trim())) { toast.error("Every question needs a prompt."); return; }
     try {
-      await persist({ data: { code, companyId, id: editingId, title, description, questions: drafts.map(draftToPayload) } });
+      await persist({ data: { code, companyId, ...(editingId ? { id: editingId } : {}), title, description, questions: drafts.map(draftToPayload) } });
       toast.success("Exam saved 📝");
       refresh();
       setView({ mode: "list" });
