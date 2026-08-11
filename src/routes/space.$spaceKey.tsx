@@ -141,7 +141,7 @@ function SpacePage() {
       const path = await uploadToWorkspace(file, { code, companyId, purpose: "canvas" });
       if (field === "path") await saveContentNow(id, { path, ...(extra ?? {}) });
       else {
-        const paths = [...((els.find((e) => e.id === id)?.content?.paths as string[]) ?? []), path];
+        const paths = [...(((els.find((e) => e.id === id)?.content as any)?.paths as string[]) ?? []), path];
         await saveContentNow(id, { paths });
       }
       toast.success("Uploaded ✨");
@@ -408,7 +408,7 @@ function ColorField({ label, value, onChange }: { label: string; value: string; 
   );
 }
 
-function FileField({ label, accept, busy, onFile }: { label: string; accept?: string; busy: boolean; onFile: (f: File) => void }) {
+function FileField({ label, accept, busy, onFile }: { label: string; accept?: string | undefined; busy: boolean; onFile: (f: File) => void }) {
   return (
     <label className="block text-sm font-bold">
       {label}
