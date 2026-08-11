@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as WorkerRouteImport } from './routes/worker'
+import { Route as SpaceSpaceKeyRouteImport } from './routes/space.$spaceKey'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -28,35 +29,44 @@ const WorkerRoute = WorkerRouteImport.update({
   path: '/worker',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SpaceSpaceKeyRoute = SpaceSpaceKeyRouteImport.update({
+  id: '/space/$spaceKey',
+  path: '/space/$spaceKey',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/worker': typeof WorkerRoute
+  '/space/$spaceKey': typeof SpaceSpaceKeyRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/worker': typeof WorkerRoute
+  '/space/$spaceKey': typeof SpaceSpaceKeyRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/worker': typeof WorkerRoute
+  '/space/$spaceKey': typeof SpaceSpaceKeyRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/worker'
+  fullPaths: '/' | '/admin' | '/worker' | '/space/$spaceKey'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/worker'
-  id: '__root__' | '/' | '/admin' | '/worker'
+  to: '/' | '/admin' | '/worker' | '/space/$spaceKey'
+  id: '__root__' | '/' | '/admin' | '/worker' | '/space/$spaceKey'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   WorkerRoute: typeof WorkerRoute
+  SpaceSpaceKeyRoute: typeof SpaceSpaceKeyRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -82,6 +92,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/space/$spaceKey': {
+      id: '/space/$spaceKey'
+      path: '/space/$spaceKey'
+      fullPath: '/space/$spaceKey'
+      preLoaderRoute: typeof SpaceSpaceKeyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -89,6 +106,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   WorkerRoute: WorkerRoute,
+  SpaceSpaceKeyRoute: SpaceSpaceKeyRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
