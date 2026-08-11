@@ -4,79 +4,20 @@ import { z } from "zod";
 const codeSchema = z.string().trim().min(2).max(40);
 const companySchema = z.string().uuid();
 const spaceSchema = z.string().regex(/^space-[1-6]$/);
+const contentSchema = z.record(z.any()).default({});
 
-async function adminDb() {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  return supabaseAdmin;
-}
+async function adminDb() { const { supabaseAdmin } = await import("@/integrations/supabase/client.server"); return supabaseAdmin; }
+async function resolveWorker(code: string) { const db = await adminDb(); const { data, error } = await db.from("workers").select("id, is_admin").eq("code", code.trim().toUpperCase()).maybeSingle(); if (error) throw new Error(error.message); if (!data) throw new Error("Invalid code"); return data; }
+async function authorize(code: string, companyId: string) { const worker = await resolveWorker(code); const db = await adminDb(); const { data: company, error } = await db.from("companies").select("id").eq("id", companyId).maybeSingle(); if (error) throw new Error(error.message); if (!company) throw new Error("Company not found"); if (!worker.is_admin) { const { data: access, error: accessError } = await db.from("worker_companies").select("worker_id").eq("worker_id", worker.id).eq("company_id", companyId).maybeSingle(); if (accessError) throw new Error(accessError.message); if (!access) throw new Error("You are not authorized for this company"); } return worker; }
 
-async function resolveWorker(code: string) {
-  const db = await adminDb();
-  const { data, error } = await db.from("workers").select("id, is_admin").eq("code", code.trim().toUpperCase()).maybeSingle();
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Invalid code");
-  return data;
-}
+export const getWorkspaceItems = createServerFn({ method: "POST" }).inputValidator((input: { code: string; companyId: string }) => ({ code: codeSchema.parse(input.code), companyId: companySchema.parse(input.companyId) })).handler(async ({ data }) => { await authorize(data.code, data.companyId); const db = await adminDb(); const { data: items, error } = await db.from("workspace_items").select("id, space_key, title, description, content, created_at").eq("company_id", data.companyId).order("created_at", { ascending: true }); if (error) throw new Error(error.message); return items ?? []; });
 
-async function authorize(code: string, companyId: string) {
-  const worker = await resolveWorker(code);
-  const db = await adminDb();
-  const { data: company, error } = await db.from("companies").select("id").eq("id", companyId).maybeSingle();
-  if (error) throw new Error(error.message);
-  if (!company) throw new Error("Company not found");
-  if (!worker.is_admin) {
-    const { data: access, error: accessError } = await db.from("worker_companies").select("worker_id").eq("worker_id", worker.id).eq("company_id", companyId).maybeSingle();
-    if (accessError) throw new Error(accessError.message);
-    if (!access) throw new Error("You are not authorized for this company");
-  }
-  return worker;
-}
+export const addWorkspaceItem = createServerFn({ method: "POST" }).inputValidator((input: { code: string; companyId: string; spaceKey: string; title: string; description?: string; content?: Record<string, unknown> }) => ({ code: codeSchema.parse(input.code), companyId: companySchema.parse(input.companyId), spaceKey: spaceSchema.parse(input.spaceKey), title: z.string().trim().min(1).max(150).parse(input.title), description: z.string().trim().max(5000).parse(input.description ?? ""), content: contentSchema.parse(input.content ?? {}) })).handler(async ({ data }) => { const worker = await authorize(data.code, data.companyId); if (!worker.is_admin) throw new Error("Only admins can add workspace items"); const db = await adminDb(); const { error } = await db.from("workspace_items").insert({ company_id: data.companyId, space_key: data.spaceKey, title: data.title, description: data.description, content: data.content }); if (error) throw new Error(error.message); return { ok: true as const }; });
 
-export const getWorkspaceItems = createServerFn({ method: "POST" })
-  .inputValidator((input: { code: string; companyId: string }) => ({ code: codeSchema.parse(input.code), companyId: companySchema.parse(input.companyId) }))
-  .handler(async ({ data }) => {
-    await authorize(data.code, data.companyId);
-    const db = await adminDb();
-    const { data: items, error } = await db.from("workspace_items").select("id, space_key, title, description, created_at").eq("company_id", data.companyId).order("created_at", { ascending: true });
-    if (error) throw new Error(error.message);
-    return items ?? [];
-  });
+export const updateWorkspaceItem = createServerFn({ method: "POST" }).inputValidator((input: { code: string; companyId: string; id: string; title: string; description?: string; content?: Record<string, unknown> }) => ({ code: codeSchema.parse(input.code), companyId: companySchema.parse(input.companyId), id: z.string().uuid().parse(input.id), title: z.string().trim().min(1).max(150).parse(input.title), description: z.string().trim().max(5000).parse(input.description ?? ""), content: contentSchema.parse(input.content ?? {}) })).handler(async ({ data }) => { const worker = await authorize(data.code, data.companyId); if (!worker.is_admin) throw new Error("Only admins can edit workspace items"); const db = await adminDb(); const { error } = await db.from("workspace_items").update({ title: data.title, description: data.description, content: data.content }).eq("id", data.id).eq("company_id", data.companyId); if (error) throw new Error(error.message); return { ok: true as const }; });
 
-export const addWorkspaceItem = createServerFn({ method: "POST" })
-  .inputValidator((input: { code: string; companyId: string; spaceKey: string; title: string; description?: string }) => ({
-    code: codeSchema.parse(input.code), companyId: companySchema.parse(input.companyId), spaceKey: spaceSchema.parse(input.spaceKey),
-    title: z.string().trim().min(1).max(100).parse(input.title), description: z.string().trim().max(500).parse(input.description ?? "")
-  }))
-  .handler(async ({ data }) => {
-    const worker = await authorize(data.code, data.companyId);
-    if (!worker.is_admin) throw new Error("Only admins can add workspace items");
-    const db = await adminDb();
-    const { error } = await db.from("workspace_items").insert({ company_id: data.companyId, space_key: data.spaceKey, title: data.title, description: data.description });
-    if (error) throw new Error(error.message);
-    return { ok: true as const };
-  });
+export const deleteWorkspaceItem = createServerFn({ method: "POST" }).inputValidator((input: { code: string; companyId: string; id: string }) => ({ code: codeSchema.parse(input.code), companyId: companySchema.parse(input.companyId), id: z.string().uuid().parse(input.id) })).handler(async ({ data }) => { const worker = await authorize(data.code, data.companyId); if (!worker.is_admin) throw new Error("Only admins can remove workspace items"); const db = await adminDb(); const { error } = await db.from("workspace_items").delete().eq("id", data.id).eq("company_id", data.companyId); if (error) throw new Error(error.message); return { ok: true as const }; });
 
-export const updateWorkspaceItem = createServerFn({ method: "POST" })
-  .inputValidator((input: { code: string; companyId: string; id: string; title: string; description?: string }) => ({
-    code: codeSchema.parse(input.code), companyId: companySchema.parse(input.companyId), id: z.string().uuid().parse(input.id),
-    title: z.string().trim().min(1).max(100).parse(input.title), description: z.string().trim().max(500).parse(input.description ?? "")
-  }))
-  .handler(async ({ data }) => {
-    const worker = await authorize(data.code, data.companyId);
-    if (!worker.is_admin) throw new Error("Only admins can edit workspace items");
-    const db = await adminDb();
-    const { error } = await db.from("workspace_items").update({ title: data.title, description: data.description }).eq("id", data.id).eq("company_id", data.companyId);
-    if (error) throw new Error(error.message);
-    return { ok: true as const };
-  });
+export const getMcqExams = createServerFn({ method: "POST" }).inputValidator((input: { code: string; companyId: string }) => ({ code: codeSchema.parse(input.code), companyId: companySchema.parse(input.companyId) })).handler(async ({ data }) => { await authorize(data.code, data.companyId); const db = await adminDb(); const { data: exams, error } = await db.from("mcq_exams").select("id,title,description,questions,created_at").eq("company_id", data.companyId).order("created_at", { ascending: true }); if (error) throw new Error(error.message); return exams ?? []; });
 
-export const deleteWorkspaceItem = createServerFn({ method: "POST" })
-  .inputValidator((input: { code: string; companyId: string; id: string }) => ({ code: codeSchema.parse(input.code), companyId: companySchema.parse(input.companyId), id: z.string().uuid().parse(input.id) }))
-  .handler(async ({ data }) => {
-    const worker = await authorize(data.code, data.companyId);
-    if (!worker.is_admin) throw new Error("Only admins can remove workspace items");
-    const db = await adminDb();
-    const { error } = await db.from("workspace_items").delete().eq("id", data.id).eq("company_id", data.companyId);
-    if (error) throw new Error(error.message);
-    return { ok: true as const };
-  });
+export const saveMcqExam = createServerFn({ method: "POST" }).inputValidator((input: { code: string; companyId: string; id?: string; title: string; description?: string; questions: unknown[] }) => ({ code: codeSchema.parse(input.code), companyId: companySchema.parse(input.companyId), id: input.id ? z.string().uuid().parse(input.id) : undefined, title: z.string().trim().min(1).max(150).parse(input.title), description: z.string().trim().max(1000).parse(input.description ?? ""), questions: z.array(z.any()).max(100).parse(input.questions) })).handler(async ({ data }) => { const worker = await authorize(data.code, data.companyId); if (!worker.is_admin) throw new Error("Only admins can create exams"); const db = await adminDb(); const payload = { company_id: data.companyId, title: data.title, description: data.description, questions: data.questions }; const result = data.id ? await db.from("mcq_exams").update(payload).eq("id", data.id).eq("company_id", data.companyId) : await db.from("mcq_exams").insert(payload); if (result.error) throw new Error(result.error.message); return { ok: true as const }; });
