@@ -56,6 +56,59 @@ export type Database = {
           },
         ]
       }
+      canvas_elements: {
+        Row: {
+          company_id: string
+          content: Json
+          created_at: string
+          h: number
+          id: string
+          space_key: string
+          type: string
+          updated_at: string
+          w: number
+          x: number
+          y: number
+          z: number
+        }
+        Insert: {
+          company_id: string
+          content?: Json
+          created_at?: string
+          h?: number
+          id?: string
+          space_key: string
+          type: string
+          updated_at?: string
+          w?: number
+          x?: number
+          y?: number
+          z?: number
+        }
+        Update: {
+          company_id?: string
+          content?: Json
+          created_at?: string
+          h?: number
+          id?: string
+          space_key?: string
+          type?: string
+          updated_at?: string
+          w?: number
+          x?: number
+          y?: number
+          z?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "canvas_elements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           created_at: string
@@ -83,12 +136,152 @@ export type Database = {
         }
         Relationships: []
       }
+      exam_questions: {
+        Row: {
+          answer_key: Json
+          config: Json
+          created_at: string
+          exam_id: string
+          id: string
+          marks: number
+          position: number
+          prompt: string
+          type: string
+        }
+        Insert: {
+          answer_key?: Json
+          config?: Json
+          created_at?: string
+          exam_id: string
+          id?: string
+          marks?: number
+          position?: number
+          prompt?: string
+          type: string
+        }
+        Update: {
+          answer_key?: Json
+          config?: Json
+          created_at?: string
+          exam_id?: string
+          id?: string
+          marks?: number
+          position?: number
+          prompt?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_questions_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exam_submissions: {
+        Row: {
+          answers: Json
+          auto_score: number
+          exam_id: string
+          graded_at: string | null
+          id: string
+          manual_score: number
+          max_score: number
+          status: string
+          submitted_at: string
+          total_score: number
+          worker_id: string
+        }
+        Insert: {
+          answers?: Json
+          auto_score?: number
+          exam_id: string
+          graded_at?: string | null
+          id?: string
+          manual_score?: number
+          max_score?: number
+          status?: string
+          submitted_at?: string
+          total_score?: number
+          worker_id: string
+        }
+        Update: {
+          answers?: Json
+          auto_score?: number
+          exam_id?: string
+          graded_at?: string | null
+          id?: string
+          manual_score?: number
+          max_score?: number
+          status?: string
+          submitted_at?: string
+          total_score?: number
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_submissions_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_submissions_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exams: {
+        Row: {
+          company_id: string
+          created_at: string
+          description: string
+          id: string
+          is_published: boolean
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          description?: string
+          id?: string
+          is_published?: boolean
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          description?: string
+          id?: string
+          is_published?: boolean
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exams_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           company_id: string
           cost: number
           created_at: string
           customer_name: string
+          delivered_at: string | null
           id: string
           order_details: string
           price: number
@@ -101,6 +294,7 @@ export type Database = {
           cost?: number
           created_at?: string
           customer_name: string
+          delivered_at?: string | null
           id?: string
           order_details: string
           price?: number
@@ -113,6 +307,7 @@ export type Database = {
           cost?: number
           created_at?: string
           customer_name?: string
+          delivered_at?: string | null
           id?: string
           order_details?: string
           price?: number

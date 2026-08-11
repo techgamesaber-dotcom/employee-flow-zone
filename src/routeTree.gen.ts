@@ -11,7 +11,10 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as ExamsRouteImport } from './routes/exams'
+import { Route as LeaderboardRouteImport } from './routes/leaderboard'
 import { Route as WorkerRouteImport } from './routes/worker'
+import { Route as SpaceSpaceKeyRouteImport } from './routes/space.$spaceKey'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -23,40 +26,76 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ExamsRoute = ExamsRouteImport.update({
+  id: '/exams',
+  path: '/exams',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LeaderboardRoute = LeaderboardRouteImport.update({
+  id: '/leaderboard',
+  path: '/leaderboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WorkerRoute = WorkerRouteImport.update({
   id: '/worker',
   path: '/worker',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SpaceSpaceKeyRoute = SpaceSpaceKeyRouteImport.update({
+  id: '/space/$spaceKey',
+  path: '/space/$spaceKey',
   getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/exams': typeof ExamsRoute
+  '/leaderboard': typeof LeaderboardRoute
   '/worker': typeof WorkerRoute
+  '/space/$spaceKey': typeof SpaceSpaceKeyRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/exams': typeof ExamsRoute
+  '/leaderboard': typeof LeaderboardRoute
   '/worker': typeof WorkerRoute
+  '/space/$spaceKey': typeof SpaceSpaceKeyRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/exams': typeof ExamsRoute
+  '/leaderboard': typeof LeaderboardRoute
   '/worker': typeof WorkerRoute
+  '/space/$spaceKey': typeof SpaceSpaceKeyRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/worker'
+  fullPaths:
+    '/' | '/admin' | '/exams' | '/leaderboard' | '/worker' | '/space/$spaceKey'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/worker'
-  id: '__root__' | '/' | '/admin' | '/worker'
+  to:
+    '/' | '/admin' | '/exams' | '/leaderboard' | '/worker' | '/space/$spaceKey'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/exams'
+    | '/leaderboard'
+    | '/worker'
+    | '/space/$spaceKey'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  ExamsRoute: typeof ExamsRoute
+  LeaderboardRoute: typeof LeaderboardRoute
   WorkerRoute: typeof WorkerRoute
+  SpaceSpaceKeyRoute: typeof SpaceSpaceKeyRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -75,11 +114,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/exams': {
+      id: '/exams'
+      path: '/exams'
+      fullPath: '/exams'
+      preLoaderRoute: typeof ExamsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/leaderboard': {
+      id: '/leaderboard'
+      path: '/leaderboard'
+      fullPath: '/leaderboard'
+      preLoaderRoute: typeof LeaderboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/worker': {
       id: '/worker'
       path: '/worker'
       fullPath: '/worker'
       preLoaderRoute: typeof WorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/space/$spaceKey': {
+      id: '/space/$spaceKey'
+      path: '/space/$spaceKey'
+      fullPath: '/space/$spaceKey'
+      preLoaderRoute: typeof SpaceSpaceKeyRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -88,7 +148,10 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  ExamsRoute: ExamsRoute,
+  LeaderboardRoute: LeaderboardRoute,
   WorkerRoute: WorkerRoute,
+  SpaceSpaceKeyRoute: SpaceSpaceKeyRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
